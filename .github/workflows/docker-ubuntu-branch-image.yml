@@ -82,6 +82,8 @@ jobs:
           context: ./
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+   
 
       - name: Export digest
         run: |
