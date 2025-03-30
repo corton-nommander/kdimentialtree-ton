@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get clean && \
     apt-get update && \
     apt-get install -y libc-bin && \
-    apt-get install -y build-essential cmake clang openssl libssl-dev zlib1g-dev gperf wget git \
+    apt-get install -y build-essential cmake clang gcc g++ openssl libssl-dev zlib1g-dev gperf wget git \
     ninja-build libsodium-dev libmicrohttpd-dev liblz4-dev pkg-config autoconf automake libtool \
     libjemalloc-dev lsb-release software-properties-common gnupg
 
