@@ -64,6 +64,7 @@ jobs:
       - name: Build and export to Docker
         uses: docker/build-push-action@v6
         with:
+          platforms: ${{ matrix.platform }}
           load: true
           context: ./
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
