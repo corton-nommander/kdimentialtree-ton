@@ -10,13 +10,8 @@ RUN apt-get update && \
     ninja-build libsodium-dev libmicrohttpd-dev liblz4-dev pkg-config autoconf automake libtool \
     libjemalloc-dev lsb-release software-properties-common gnupg
 
-RUN wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 16 all && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV CC=/usr/bin/clang-16
-ENV CXX=/usr/bin/clang++-16
+ENV CC=/usr/bin/clang
+ENV CXX=/usr/bin/clang++
 ENV CCACHE_DISABLE=1
 
 WORKDIR /
