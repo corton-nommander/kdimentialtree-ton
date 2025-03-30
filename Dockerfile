@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 AS builder
+FROM ubuntu:22.04 AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 RUN cat /proc/cpuinfo
 RUN apt-get update && \
@@ -28,7 +28,7 @@ RUN mkdir build && \
     blockchain-explorer emulator tonlibjson http-proxy adnl-proxy
 
 # build image
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y wget curl libatomic1 openssl libsodium-dev libmicrohttpd-dev liblz4-dev libjemalloc-dev htop \
