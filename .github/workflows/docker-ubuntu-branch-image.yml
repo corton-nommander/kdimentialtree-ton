@@ -61,24 +61,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and export to Docker
-        uses: docker/build-push-action@v6
-        with:
-          platforms: ${{ matrix.platform }}
-          load: true
-          context: ./
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-
-      - name: Test
-        run: |
-          docker run --rm -e "TEST=1" ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v6
         with:
           platforms: ${{ matrix.platform }}
-          push: true
           context: ./
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
