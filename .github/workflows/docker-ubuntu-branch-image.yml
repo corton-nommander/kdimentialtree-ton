@@ -55,6 +55,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/arm64
+          push: true
           context: ./
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}-arm64
 
@@ -107,6 +108,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
+          push: true
           context: ./
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}-amd64
 
