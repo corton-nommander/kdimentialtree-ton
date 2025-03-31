@@ -190,6 +190,10 @@ jobs:
 #          path: ${{ runner.temp }}/digests
 #          pattern: digests-*
 #          merge-multiple: true
+      - name: Get tag as branch name
+        id: tag
+        run: |
+          echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -207,7 +211,6 @@ jobs:
             --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}-arm64 \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}-amd64
-
 
       - name: Inspect image
         run: |
