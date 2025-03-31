@@ -33,7 +33,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.5.0
@@ -56,8 +56,22 @@ jobs:
         with:
           platforms: linux/arm64
           context: ./
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.docker_build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
   build-amd64:
     runs-on: ubuntu-22.04
@@ -81,7 +95,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.5.0
@@ -108,68 +122,79 @@ jobs:
         with:
           platforms: linux/amd64
           context: ./
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
-  build-riscv64:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-
-      - name: Prepare
+      - name: Export digest
         run: |
-          platform=linux/amd64
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.docker_build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
-      - name: Get tag as branch name
-        id: tag
-        run: |
-          echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.5.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.10.0
-        with:
-          driver-opts: image=moby/buildkit:v0.20.2
-
-      - name: Fix qemu multiplatform build
-        run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes -c yes
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/riscv64
-          context: ./
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}            
-
+#  build-riscv64:
+#    runs-on: ubuntu-22.04
+#    steps:
+#      - name: Check out repository
+#        uses: actions/checkout@v3
+#        with:
+#          submodules: 'recursive'
+#
+#      - name: Prepare
+#        run: |
+#          platform=linux/riscv64
+#          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+#
+#      - name: Get tag as branch name
+#        id: tag
+#        run: |
+#          echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+#
+#      - name: Docker meta
+#        id: meta
+#        uses: docker/metadata-action@v5
+#        with:
+#          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+#
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v3.5.0
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3.10.0
+#        with:
+#          driver-opts: image=moby/buildkit:v0.20.2
+#
+#      - name: Fix qemu multiplatform build
+#        run: |
+#          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes -c yes
+#
+#      - name: Login to GitHub Container Registry
+#        uses: docker/login-action@v3
+#        with:
+#          registry: ${{ env.REGISTRY }}
+#          username: ${{ github.repository_owner }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Build and push
+#        id: docker_build
+#        uses: docker/build-push-action@v6
+#        with:
+#          platforms: linux/riscv64
+#          context: ./
+#          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
 #          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-   
-
+#
 #      - name: Export digest
 #        run: |
 #          mkdir -p ${{ runner.temp }}/digests
-#          digest="${{ steps.build.outputs.digest }}"
+#          digest="${{ steps.docker_build.outputs.digest }}"
 #          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 #
 #      - name: Upload digest
@@ -179,46 +204,49 @@ jobs:
 #          path: ${{ runner.temp }}/digests/*
 #          if-no-files-found: error
 #          retention-days: 1
-#
-#  merge:
-#    runs-on: ubuntu-22.04
-#    needs:
-#      - build-arm64
-#    steps:
-#      - name: Download digests
-#        uses: actions/download-artifact@v4
-#        with:
-#          path: ${{ runner.temp }}/digests
-#          pattern: digests-*
-#          merge-multiple: true
-#
-#      - name: Login to GitHub Container Registry
-#        uses: docker/login-action@v3
-#        with:
-#          registry: ${{ env.REGISTRY }}
-#          username: ${{ github.repository_owner }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
-#
-#      - name: Set up Docker Buildx
-#        uses: docker/setup-buildx-action@v3.10.0
-#
-#      - name: Docker meta
-#        id: meta
-#        uses: docker/metadata-action@v5
-#        with:
-#          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-#          tags: |
-#            type=ref,event=branch
-#            type=ref,event=pr
-#            type=semver,pattern={{version}}
-#            type=semver,pattern={{major}}.{{minor}}
-#
-#      - name: Create manifest list and push
-#        working-directory: ${{ runner.temp }}/digests
-#        run: |
-#          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-#            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}@sha256:%s ' *)
-#
-#      - name: Inspect image
-#        run: |
-#          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+
+  merge:
+    runs-on: ubuntu-22.04
+    needs:
+      - build-amd64
+      - build-arm64
+#      - build-riscv64
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.10.0
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
